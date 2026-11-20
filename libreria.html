@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi librería</title>
+<style>
+:root{--wall:#1f2d2a;--wall2:#16211f;--wood:#6b4423;--wood2:#3f2713;--ink:#f1e6d3;--mute:#b9ab94;--panel:#2a1c10;--line:#5a3b20;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--wall2);color:var(--ink);font-family:Georgia,"Times New Roman",serif}
+body{background:radial-gradient(ellipse at 50% 0,var(--wall) 0,var(--wall2) 75%) fixed}
+main{max-width:1100px;margin:0 auto;padding:28px 16px 40px}
+h1{font-size:clamp(28px,5vw,44px);margin:0 0 4px;font-weight:700;letter-spacing:.01em}
+.sub{color:var(--mute);margin:0 0 22px;font-size:16px}
+.case{position:relative;border:10px solid var(--wood);border-radius:6px;background:#120c07;box-shadow:0 20px 50px #0008, inset 0 0 40px #000c;overflow:hidden;min-height:330px}
+.track{display:flex;align-items:flex-end;gap:3px;overflow-x:auto;overflow-y:hidden;padding:60px 28px 0;height:330px;cursor:grab;scrollbar-width:none;touch-action:pan-x;user-select:none}
+.track::-webkit-scrollbar{display:none}
+.track.drag{cursor:grabbing}
+.board{position:absolute;left:0;right:0;bottom:0;height:22px;background:linear-gradient(var(--wood),var(--wood2));border-top:2px solid #8a5d33;pointer-events:none;z-index:2}
+.book{flex:none;border:0;padding:0;margin:0 0 22px;position:relative;color:#fff;border-radius:2px 2px 0 0;box-shadow:inset 3px 0 5px #fff3,inset -4px 0 6px #0006,2px 0 4px #0006;cursor:pointer;opacity:0;transform:translateY(-120px);transition:transform .35s cubic-bezier(.3,1.4,.5,1);font-family:inherit}
+.book.in{animation:drop .6s cubic-bezier(.3,1.3,.5,1) forwards;animation-delay:var(--d)}
+.book.on{transform:translateY(-22px) !important}
+.book:focus-visible{outline:3px solid #ffd479;outline-offset:2px}
+@keyframes drop{from{opacity:0;transform:translateY(-120px)}to{opacity:1;transform:none}}
+.book.in.on{animation:none;opacity:1}
+.sp{display:flex;align-items:center;justify-content:center;height:100%;width:100%;padding:10px;font-size:15px;font-weight:700;text-align:center;line-height:1.25;overflow:hidden;text-shadow:0 1px 2px #0008}
+.panel img{float:left;height:150px;border-radius:3px;margin:0 16px 8px 0;box-shadow:0 4px 10px #0008}
+.book::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#0006 0,#fff3 3%,#0000 10%);pointer-events:none}
+.doors{position:absolute;inset:0;display:flex;z-index:5;transition:opacity .3s .7s}
+.door{flex:1;background:repeating-linear-gradient(90deg,#4d311a 0 14px,#57391f 14px 28px);transition:transform .8s ease;box-shadow:inset 0 0 30px #000a}
+.door:first-child{border-right:2px solid #000a}
+.open .door:first-child{transform:translateX(-101%)}
+.open .door:last-child{transform:translateX(101%)}
+.open .doors{opacity:0;pointer-events:none}
+.openbtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;background:var(--ink);color:#2a1c10;border:0;border-radius:999px;padding:14px 26px;font:700 18px Georgia,serif;cursor:pointer;box-shadow:0 6px 18px #0009}
+.open .openbtn{display:none}
+.panel{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px 20px;min-height:110px}
+.panel h2{margin:0 0 4px;font-size:24px}
+.panel p{margin:4px 0;color:var(--mute);font-size:17px;line-height:1.5;max-width:70ch}
+.swatch{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:8px}
+form{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+input[type=text]{flex:1 1 180px;background:#120c07;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:11px 12px;font:16px Georgia,serif}
+input[type=color]{width:46px;height:44px;border:1px solid var(--line);background:#120c07;border-radius:6px;padding:3px}
+button.act{background:var(--ink);color:#2a1c10;border:0;border-radius:6px;padding:11px 18px;font:700 16px Georgia,serif;cursor:pointer}
+button.del{background:none;border:1px solid var(--line);color:var(--mute);border-radius:6px;padding:7px 12px;margin-top:10px;font:15px Georgia,serif;cursor:pointer}
+label.hint{color:var(--mute);font-size:15px}
+@media (prefers-reduced-motion:reduce){.book.in{animation-duration:.01s;animation-delay:0s}.door{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Mi librería</h1>
+  <p class="sub">Abre la estantería, desliza para recorrerla y toca un libro para sacarlo.</p>
+
+  <div class="case" id="case">
+    <div class="track" id="track" aria-label="Estantería de libros"></div>
+    <div class="board"></div>
+    <div class="doors"><div class="door"></div><div class="door"></div></div>
+    <button class="openbtn" id="open">Abrir estantería</button>
+  </div>
+
+  <div class="panel" id="panel" aria-live="polite">
+    <h2>Elige un libro</h2>
+    <p>Toca cualquier lomo para ver sus datos.</p>
+  </div>
+
+  <form id="form">
+    <input type="text" id="t" placeholder="Título" required aria-label="Título">
+    <input type="text" id="a" placeholder="Autor" required aria-label="Autor">
+    <label class="hint">Color <input type="color" id="c" value="#8c2f39"></label>
+    <button class="act" type="submit">Añadir libro</button>
+  </form>
+  <form onsubmit="return false">
+    <button class="act" type="button" id="auto">Buscar portadas automáticamente</button>
+    <span class="hint" id="st">Funciona al abrir el archivo descargado, con internet.</span>
+  </form>
+</main>
+
+<script>
+var base=[
+["Supervivencia de un GEO","Miguel Jarque","#8c2f39","Supervivencias_de_un_GEO"],
+["Este es tu momento","Javier Iriondo","#c9a227","Este_es_tu_momento"],
+["Esa vocecita de tu cabeza","Mo Gawdat","#c9a227"],
+["Buscadores de suerte","Nuria Pérez","#2f4858","Buscadores_de_suerte"],
+["Hábitos atómicos","James Clear","#6a4c93","habitos_atomicos"],
+["Meditaciones","Marco Aurelio","#7a5230"],
+["El libro negro de las horas","Eva García Sáenz de Urturi","#3d405b"],
+["El italiano","Arturo Pérez-Reverte","#9c2c5a"],
+["El séptimo círculo del infierno","Santiago Posteguillo","#1d3557"],
+["Nos vemos en esta vida o en la otra","Javier Iriondo","#c9a227","nos_vemos_en_esta_vida_o_en_la_otra"],
+["Confianza","Martin Meadows","#b5651d","Confianza"],
+["Determinación","Martin Meadows","#b5651d","determinacion_jpg"],
+["Autodisciplina","Martin Meadows","#b5651d"],
+["Cómo construir la autodisciplina","Martin Meadows","#b5651d"],
+["El monje que vendió su Ferrari","Robin Sharma","#4a5759","El_monje_que_vendio_su_ferrari"],
+["El precio de no ser tú","Pablo André Hodel","#6b705c","el_precio_de_no_ser_tu"],
+["Revolución","Arturo Pérez-Reverte","#9c2c5a"],
+["La genealogía de la moral","Friedrich Nietzsche","#8c2f39","la_genealogia_de_la_moral"],
+["Más allá del bien y del mal","Friedrich Nietzsche","#8c2f39"],
+["Deportados y olvidados","Diego Martínez López, Gutmaro Gómez Bravo","#c9a227","deportados_y_olvidados"],
+["Memorias de un exnazi","David Saavedra","#2f4858"],
+["El superviviente de Auschwitz","Josef Lewkowicz, Michael Calvin","#6a4c93","El_superviviente_de_Auschwitz"],
+["El triunfo de la estupidez","Jano García","#7a5230"],
+["La bibliotecaria de Auschwitz","Antonio Iturbe","#3d405b"],
+["La ladrona de libros","Markus Zusak","#2a7f62","La_ladrona_de_libros"],
+["El hombre en busca de sentido","Viktor Frankl","#a63d2f","El_hombre_en_busca_de_sentido"],
+["La inestabilidad política y el declive español","José Antonio Primo de Rivera","#5b8e7d"],
+["Todas las piezas rotas","John Boyne","#9c2c5a","Todas_las_piezas_rotas"],
+["Diario de Ana Frank","Ana Frank","#1d3557"],
+["Un saco de canicas","Joseph Joffo","#b5651d","Un_saco_de_canicas"],
+["Secretos del Tercer Reich","Guido Knopp","#4a5759"],
+["Las SS","Robert Lewis Koehl","#6b705c","SS"],
+["Piloto de Stukas","Hans-Ulrich Rudel","#8c2f39","Piloto_de_Stukas"],
+["Autoridad ilegítima","Noam Chomsky","#c9a227","Autoridad_ilegítima"],
+["Dignidad humana y justicia social","José Antonio Primo de Rivera","#2f4858","Dignidad humana y justicia social"],
+["1984","George Orwell","#6a4c93","1984"],
+["El largo camino de la esperanza","Alex Simmons","#7a5230"],
+["Tienes que morir","Lucky Marty","#3d405b"],
+["La patrulla de Sinaí","Alex Simmons","#7a5230"],
+["Encontrar un hogar","René Ponte","#2a7f62"],
+["Las mejores personas de Jersey","Arcadio Rodríguez","#a63d2f"],
+["El extranjero","Albert Camus","#5b8e7d","elextranjero"],
+["Averno","Louise Glück","#9c2c5a","Averno"],
+["El arte de amar","Erich Fromm","#1d3557","El_arte_de_amar"],
+["Metafísica de los tubos","Amélie Nothomb","#b5651d","Metafísica de los tubos"],
+["El lobo estepario","Hermann Hesse","#4a5759","el lobo estepario"]
+];
+var books=[],mine=[],covers={},localCovers={};
+try{var cs=localStorage.getItem("libreria-portadas");if(cs)covers=JSON.parse(cs)||{}}catch(e){}
+function setCover(t,f){if(!f)return;var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){var w=240,h=Math.round(im.height*w/im.width),k=document.createElement("canvas");k.width=w;k.height=h;k.getContext("2d").drawImage(im,0,0,w,h);covers[t]=k.toDataURL("image/jpeg",.82);try{localStorage.setItem("libreria-portadas",JSON.stringify(covers))}catch(e){}var s=sel;render(false);show(s)};im.src=r.result};r.readAsDataURL(f)}
+try{var s=localStorage.getItem("libreria-mios");if(s)mine=JSON.parse(s)||[]}catch(e){}
+function all(){return base.concat(mine)}
+var track=document.getElementById("track"),panel=document.getElementById("panel"),opened=false,sel=-1;
+function pick(i){return 150+((i*37)%7)*18}
+function render(animate){
+  track.innerHTML="";
+  all().forEach(function(b,i){
+    var el=document.createElement("button");
+    el.className="book"+(animate?" in":"")+(i===sel?" on":"");
+    var cvr=covers[b[0]]||localCovers[b[0]];
+    el.style.cssText="height:"+(170+((i*37)%4)*8)+"px;width:118px;background:"+(cvr?"center/cover url('"+cvr+"')":b[2])+";--d:"+(i*90)+"ms";
+    el.setAttribute("aria-label",b[0]+", de "+b[1]);
+    if(!animate){el.style.opacity=1}
+    if(!cvr){el.innerHTML='<span class="sp"></span>';el.firstChild.textContent=b[0]}
+    el.addEventListener("click",function(){if(moved)return;show(i)});
+    track.appendChild(el);
+  });
+}
+function show(i){
+  sel=i;var b=all()[i];
+  Array.prototype.forEach.call(track.children,function(c,k){c.classList.toggle("on",k===i)});
+  panel.innerHTML="";
+  var h=document.createElement("h2");h.textContent=b[0];
+  var p=document.createElement("p");var sw=document.createElement("span");sw.className="swatch";sw.style.background=b[2];
+  p.appendChild(sw);p.appendChild(document.createTextNode(b[1]));
+  var q=document.createElement("p");q.textContent="Libro "+(i+1)+" de "+all().length+" en tu estantería.";
+  panel.appendChild(h);panel.appendChild(p);panel.appendChild(q);
+  var cv=covers[b[0]]||localCovers[b[0]];
+  if(cv){var im=document.createElement("img");im.src=cv;im.alt="Portada de "+b[0];panel.insertBefore(im,panel.firstChild)}
+  var lb=document.createElement("label");lb.className="del";lb.style.cssText="display:inline-block;margin-right:8px";lb.textContent=cv?"Cambiar portada":"Poner portada";
+  var fi=document.createElement("input");fi.type="file";fi.accept="image/*";fi.hidden=true;
+  fi.onchange=function(){setCover(b[0],fi.files[0])};
+  lb.appendChild(fi);panel.appendChild(lb);
+  if(i>=base.length){
+    var d=document.createElement("button");d.className="del";d.textContent="Quitar de la estantería";
+    d.onclick=function(){mine.splice(i-base.length,1);save();sel=-1;render(false);panel.innerHTML="<h2>Libro quitado</h2><p>Toca otro lomo para ver sus datos.</p>"};
+    panel.appendChild(d);
+  }
+  var el=track.children[i];if(el)el.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});
+}
+function save(){try{localStorage.setItem("libreria-mios",JSON.stringify(mine))}catch(e){}}
+document.getElementById("open").onclick=function(){
+  document.getElementById("case").classList.add("open");opened=true;render(true);
+};
+document.getElementById("form").onsubmit=function(e){
+  e.preventDefault();
+  var t=document.getElementById("t"),a=document.getElementById("a"),c=document.getElementById("c");
+  mine.push([t.value.trim(),a.value.trim(),c.value]);save();
+  t.value="";a.value="";
+  render(false);show(all().length-1);
+  if(!opened){document.getElementById("case").classList.add("open");opened=true;render(false);show(all().length-1)}
+};
+/* arrastrar para deslizar */
+var down=false,sx=0,sl=0,moved=false;
+track.addEventListener("pointerdown",function(e){if(e.pointerType==="touch")return;down=true;moved=false;sx=e.clientX;sl=track.scrollLeft;track.classList.add("drag")});
+window.addEventListener("pointermove",function(e){if(!down)return;var dx=e.clientX-sx;if(Math.abs(dx)>5)moved=true;track.scrollLeft=sl-dx});
+window.addEventListener("pointerup",function(){if(!down)return;down=false;track.classList.remove("drag");setTimeout(function(){moved=false},0)});
+track.addEventListener("wheel",function(e){if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){track.scrollLeft+=e.deltaY;e.preventDefault()}},{passive:false});
+document.getElementById("auto").onclick=async function(){
+  var st=document.getElementById("st"),n=0,list=all();
+  for(var i=0;i<list.length;i++){
+    var b=list[i];if(covers[b[0]]||localCovers[b[0]])continue;
+    st.textContent="Buscando "+(i+1)+" de "+list.length+"…";
+    try{
+      var r=await fetch("https://openlibrary.org/search.json?limit=1&fields=cover_i&title="+encodeURIComponent(b[0])+"&author="+encodeURIComponent(b[1].split(",")[0]));
+      var j=await r.json();var d=j.docs&&j.docs[0];
+      if(d&&d.cover_i){covers[b[0]]="https://covers.openlibrary.org/b/id/"+d.cover_i+"-M.jpg";n++;try{localStorage.setItem("libreria-portadas",JSON.stringify(covers))}catch(e){}render(false)}
+    }catch(e){}
+  }
+  st.textContent=n?"Listo: "+n+" portadas nuevas. A las que falten puedes ponerles la portada a mano.":"No se encontró ninguna. Abre el archivo descargado (no esta página) y comprueba que tienes internet.";
+};
+render(false);
+/* portadas de la carpeta img: usa el 4.º dato del libro o busca img/titulo-del-libro.jpg|png|webp */
+function slug(t){return t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
+function findLocal(b,cb){
+  var c=[],seen={};
+  function add(p){if(!seen[p]){seen[p]=1;c.push(p)}}
+  var names=[];if(b[3])names.push(b[3]);names.push(slug(b[0]));
+  names.forEach(function(n,k){
+    var exts=(k===0&&b[3])?["jpg","png"]:["jpg","jpeg","png","webp"];
+    [n,n.replace(/_/g," "),n.replace(/ /g,"_")].forEach(function(v){
+      ["","jpg","_jpg"].forEach(function(suf){exts.forEach(function(x){add("img/"+v+suf+"."+x)})});
+    });
+  });
+  (function next(k){if(k>=c.length)return;var im=new Image();im.onload=function(){cb(c[k])};im.onerror=function(){next(k+1)};im.src=c[k]})(0);
+}
+all().forEach(function(b){findLocal(b,function(p){
+  localCovers[b[0]]=p;var x=track.scrollLeft;render(false);track.scrollLeft=x;if(sel>=0)show(sel);
+})});
+</script>
+</body>
+</html>
